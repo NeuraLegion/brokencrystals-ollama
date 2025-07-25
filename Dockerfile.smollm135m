@@ -1,0 +1,23 @@
+FROM ollama/ollama AS ollama
+
+FROM cgr.dev/chainguard/wolfi-base
+
+RUN apk add --no-cache libstdc++
+
+COPY --from=ollama /usr/bin/ollama /usr/bin/ollama
+COPY --from=ollama /usr/lib/ollama/runners/cpu /usr/lib/ollama/runners/cpu
+
+# In arm64 ollama/ollama image, there is no avx libraries and seems they are not must-have (#2903, #3891)
+# COPY --from=ollama /usr/lib/ollama/runners/cpu_avx /usr/lib/ollama/runners/cpu_avx
+# COPY --from=ollama /usr/lib/ollama/runners/cpu_avx2 /usr/lib/ollama/runners/cpu_avx2
+
+# In this image, we download smollm:135m model directly
+RUN /usr/bin/ollama serve & sleep 10 && \
+      /usr/bin/ollama pull smollm:135m
+
+
+# Expose port for the service
+EXPOSE 11434
+
+ENTRYPOINT ["/usr/bin/ollama"]
+CMD ["serve"]
